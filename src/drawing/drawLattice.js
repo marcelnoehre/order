@@ -27,11 +27,11 @@ export function preloadDrawing() {
   getWorker()
 }
 
-export function drawLattice(algorithm, context, { timeoutMs = 1000 } = {}) {
+export function drawLattice(algorithm, context, options = {}) {
   cancelDrawing()
   return new Promise((resolve, reject) => {
     const id = nextId++
     pending.set(id, { resolve, reject })
-    getWorker().postMessage({ id, algorithm, context, timeoutMs })
+    getWorker().postMessage({ id, algorithm, context, options })
   })
 }

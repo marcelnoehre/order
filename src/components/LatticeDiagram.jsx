@@ -42,7 +42,7 @@ function fitFrame(points, width, height) {
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 
-function LatticeDiagram({ lattice, onHover }) {
+function LatticeDiagram({ lattice, onHover, onEdit }) {
   const svgRef = useRef(null)
   const [size, setSize] = useState(null)
   const initial = useMemo(() => orient(lattice.nodes), [lattice])
@@ -57,6 +57,10 @@ function LatticeDiagram({ lattice, onHover }) {
   useEffect(() => {
     onHover?.(shown)
   }, [onHover, shown])
+
+  useEffect(() => {
+    onEdit?.(positions !== initial)
+  }, [onEdit, positions, initial])
 
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) =>

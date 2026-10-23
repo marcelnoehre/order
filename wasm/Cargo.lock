@@ -630,6 +630,7 @@ version = "0.1.0"
 dependencies = [
  "bit-set",
  "odis",
+ "rust-sugiyama",
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",

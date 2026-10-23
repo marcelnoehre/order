@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react'
 import EditableLabel from './EditableLabel.jsx'
 import DiagramView from './DiagramView.jsx'
+import DrawButton from './DrawButton.jsx'
 import { CrossIcon, PlusIcon } from './Icons.jsx'
 import { toCxt, toCsv, downloadFile } from '../utils/exportContext.js'
 import { drawings } from '../data/drawings.js'
 import { drawLattice } from '../drawing/drawLattice.js'
+import { parametersFor, useDrawingParameters } from '../drawing/parameters.js'
 
 const INITIAL_SIZE = 5
 const DEFAULT_TITLE = 'Formal Context'
@@ -48,6 +50,7 @@ function ContextTable({ initialContext }) {
   const [atTop, setAtTop] = useState(true)
   const [result, setResult] = useState(null)
   const [view, setView] = useState('context')
+  const drawingParameters = useDrawingParameters()
   const latestDraw = useRef(0)
   const [manyValued, setManyValued] = useState(initialContext?.manyValued ?? false)
   const [values, setValues] = useState(() => new Map(initialContext?.values))
@@ -147,11 +150,12 @@ function ContextTable({ initialContext }) {
 
   const startDrawing = async (drawing) => {
     const id = ++latestDraw.current
-    const base = { id, drawing, names: drawInput, signature }
+    const parameters = parametersFor(drawing, drawingParameters)
+    const base = { id, drawing, parameters, names: drawInput, signature }
     setResult({ ...base, status: 'running' })
     setView('diagram')
     try {
-      const { lattice, ms } = await drawLattice(drawing.id, drawInput)
+      const { lattice, ms } = await drawLattice(drawing.id, drawInput, parameters)
       if (id !== latestDraw.current) return
       setResult({ ...base, status: 'done', lattice, ms })
     } catch (error) {
@@ -211,15 +215,14 @@ function ContextTable({ initialContext }) {
       <div className="draw-bar">
         <span className="draw-label">Draw</span>
         {drawings.map((drawing) => (
-          <button
+          <DrawButton
             key={drawing.id}
-            className="btn btn-accent"
-            onClick={() => startDrawing(drawing)}
+            drawing={drawing}
+            values={parametersFor(drawing, drawingParameters)}
+            onDraw={() => startDrawing(drawing)}
             disabled={manyValued}
             title={manyValued ? 'Many-valued contexts need to be scaled before drawing' : undefined}
-          >
-            {drawing.name}
-          </button>
+          />
         ))}
         <div className="view-switch" role="group" aria-label="View">
           <button
