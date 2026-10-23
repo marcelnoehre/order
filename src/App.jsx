@@ -4,7 +4,7 @@ import SideNav from './components/SideNav.jsx'
 import ContextTable from './components/ContextTable.jsx'
 import { findContext, loadContext } from './data/contexts.js'
 
-const NAV_WIDTH_KEY = 'fca-hub.sidenav-width'
+const NAV_WIDTH_KEY = 'order.sidenav-width'
 const NAV_WIDTH_DEFAULT = 240
 
 function readNavWidth() {
