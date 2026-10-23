@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import EditableLabel from './EditableLabel.jsx'
+import DiagramView from './DiagramView.jsx'
 import { CrossIcon, PlusIcon } from './Icons.jsx'
 import { toCxt, toCsv, downloadFile } from '../utils/exportContext.js'
 import { drawings } from '../data/drawings.js'
+import { drawLattice } from '../drawing/drawLattice.js'
 
 const INITIAL_SIZE = 5
 const DEFAULT_TITLE = 'Formal Context'
@@ -44,6 +46,9 @@ function ContextTable({ initialContext }) {
   const [incidence, setIncidence] = useState(() => new Set(initialContext?.incidence))
   const [title, setTitle] = useState(initialContext?.name ?? null)
   const [atTop, setAtTop] = useState(true)
+  const [result, setResult] = useState(null)
+  const [view, setView] = useState('context')
+  const latestDraw = useRef(0)
   const [manyValued, setManyValued] = useState(initialContext?.manyValued ?? false)
   const [values, setValues] = useState(() => new Map(initialContext?.values))
 
@@ -131,13 +136,37 @@ function ContextTable({ initialContext }) {
     downloadFile(toCsv(objects, attributes, valueOf), `${filename}.csv`, 'text/csv')
   }
 
+  const drawInput = {
+    objects: objects.map((g) => g.name),
+    attributes: attributes.map((m) => m.name),
+    incidence: objects.flatMap((g, i) =>
+      attributes.flatMap((m, j) => (has(g, m) ? [[i, j]] : [])),
+    ),
+  }
+  const signature = JSON.stringify(drawInput)
+
+  const startDrawing = async (drawing) => {
+    const id = ++latestDraw.current
+    const base = { id, drawing, names: drawInput, signature }
+    setResult({ ...base, status: 'running' })
+    setView('diagram')
+    try {
+      const { lattice, ms } = await drawLattice(drawing.id, drawInput)
+      if (id !== latestDraw.current) return
+      setResult({ ...base, status: 'done', lattice, ms })
+    } catch (error) {
+      if (id !== latestDraw.current) return
+      setResult({ ...base, status: 'error', message: error.message })
+    }
+  }
+
   const filledValues = objects.reduce(
     (count, g) => count + attributes.filter((m) => valueAt(g.id, m.id).trim() !== '').length,
     0,
   )
 
   return (
-    <section className="card">
+    <section className={`card${view === 'diagram' ? ' card-fill' : ''}`}>
       <div className="card-header">
         <div>
           <h2>
@@ -182,104 +211,138 @@ function ContextTable({ initialContext }) {
       <div className="draw-bar">
         <span className="draw-label">Draw</span>
         {drawings.map((drawing) => (
-          <button key={drawing.id} className="btn btn-accent">
+          <button
+            key={drawing.id}
+            className="btn btn-accent"
+            onClick={() => startDrawing(drawing)}
+            disabled={manyValued}
+            title={manyValued ? 'Many-valued contexts need to be scaled before drawing' : undefined}
+          >
             {drawing.name}
           </button>
         ))}
+        <div className="view-switch" role="group" aria-label="View">
+          <button
+            className={view === 'context' ? 'active' : ''}
+            aria-pressed={view === 'context'}
+            onClick={() => setView('context')}
+          >
+            Context
+          </button>
+          <button
+            className={view === 'diagram' ? 'active' : ''}
+            aria-pressed={view === 'diagram'}
+            onClick={() => setView('diagram')}
+            disabled={!result}
+            title={result ? undefined : 'Draw the lattice first'}
+          >
+            Diagram
+          </button>
+        </div>
       </div>
 
-      <div className="table-scroll" onScroll={(e) => setAtTop(e.currentTarget.scrollTop === 0)}>
-        <table
-          className={`context-table${atTop ? ' at-top' : ''}`}
-          style={{ '--head-z': attributes.length + 3 }}
-        >
-          <thead>
-            <tr>
-              <th className="corner" />
-              {attributes.map((m, i) => (
-                <th
-                  key={m.id}
-                  className="label attribute"
-                  style={{ zIndex: attributes.length + 2 - i }}
-                >
-                  <EditableLabel
-                    name={m.name}
-                    onRename={(name) => renameItem(setAttributes, m.id, name)}
-                    ariaLabel="Attribute name"
-                  />
-                  <button
-                    className="remove"
-                    onClick={() => removeAttribute(m.id)}
-                    aria-label={`Remove attribute ${m.name}`}
+      {view === 'diagram' && result ? (
+        <DiagramView
+          key={result.id}
+          result={result}
+          names={result.names}
+          stale={manyValued || result.signature !== signature}
+          onRedraw={() => startDrawing(result.drawing)}
+        />
+      ) : (
+        <div className="table-scroll" onScroll={(e) => setAtTop(e.currentTarget.scrollTop === 0)}>
+          <table
+            className={`context-table${atTop ? ' at-top' : ''}`}
+            style={{ '--head-z': attributes.length + 3 }}
+          >
+            <thead>
+              <tr>
+                <th className="corner" />
+                {attributes.map((m, i) => (
+                  <th
+                    key={m.id}
+                    className="label attribute"
+                    style={{ zIndex: attributes.length + 2 - i }}
                   >
-                    <CrossIcon />
+                    <EditableLabel
+                      name={m.name}
+                      onRename={(name) => renameItem(setAttributes, m.id, name)}
+                      ariaLabel="Attribute name"
+                    />
+                    <button
+                      className="remove"
+                      onClick={() => removeAttribute(m.id)}
+                      aria-label={`Remove attribute ${m.name}`}
+                    >
+                      <CrossIcon />
+                    </button>
+                  </th>
+                ))}
+                <th className="add-cell">
+                  <button className="add" onClick={addAttribute} aria-label="Add attribute">
+                    <PlusIcon />
                   </button>
                 </th>
-              ))}
-              <th className="add-cell">
-                <button className="add" onClick={addAttribute} aria-label="Add attribute">
-                  <PlusIcon />
-                </button>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {objects.map((g) => (
-              <tr key={g.id}>
-                <th className="label object">
-                  <EditableLabel
-                    name={g.name}
-                    onRename={(name) => renameItem(setObjects, g.id, name)}
-                    ariaLabel="Object name"
-                  />
-                  <button
-                    className="remove"
-                    onClick={() => removeObject(g.id)}
-                    aria-label={`Remove object ${g.name}`}
-                  >
-                    <CrossIcon />
-                  </button>
-                </th>
-                {attributes.map((m) => {
-                  if (manyValued) {
+              </tr>
+            </thead>
+            <tbody>
+              {objects.map((g) => (
+                <tr key={g.id}>
+                  <th className="label object">
+                    <EditableLabel
+                      name={g.name}
+                      onRename={(name) => renameItem(setObjects, g.id, name)}
+                      ariaLabel="Object name"
+                    />
+                    <button
+                      className="remove"
+                      onClick={() => removeObject(g.id)}
+                      aria-label={`Remove object ${g.name}`}
+                    >
+                      <CrossIcon />
+                    </button>
+                  </th>
+                  {attributes.map((m) => {
+                    if (manyValued) {
+                      return (
+                        <td key={m.id}>
+                          <input
+                            className="cell cell-value"
+                            value={valueAt(g.id, m.id)}
+                            onChange={(e) => setValue(g.id, m.id, e.target.value)}
+                            aria-label={`Value of ${g.name} for ${m.name}`}
+                          />
+                        </td>
+                      )
+                    }
+                    const checked = incidence.has(key(g.id, m.id))
                     return (
                       <td key={m.id}>
-                        <input
-                          className="cell cell-value"
-                          value={valueAt(g.id, m.id)}
-                          onChange={(e) => setValue(g.id, m.id, e.target.value)}
-                          aria-label={`Value of ${g.name} for ${m.name}`}
-                        />
+                        <button
+                          className={`cell${checked ? ' checked' : ''}`}
+                          onClick={() => toggle(g.id, m.id)}
+                          aria-pressed={checked}
+                          aria-label={`${g.name} has ${m.name}`}
+                        >
+                          {checked && <CrossIcon className="cell-cross" />}
+                        </button>
                       </td>
                     )
-                  }
-                  const checked = incidence.has(key(g.id, m.id))
-                  return (
-                    <td key={m.id}>
-                      <button
-                        className={`cell${checked ? ' checked' : ''}`}
-                        onClick={() => toggle(g.id, m.id)}
-                        aria-pressed={checked}
-                        aria-label={`${g.name} has ${m.name}`}
-                      >
-                        {checked && <CrossIcon className="cell-cross" />}
-                      </button>
-                    </td>
-                  )
-                })}
-                <td />
+                  })}
+                  <td />
+                </tr>
+              ))}
+              <tr>
+                <th className="add-cell">
+                  <button className="add" onClick={addObject} aria-label="Add object">
+                    <PlusIcon />
+                  </button>
+                </th>
               </tr>
-            ))}
-            <tr>
-              <th className="add-cell">
-                <button className="add" onClick={addObject} aria-label="Add object">
-                  <PlusIcon />
-                </button>
-              </th>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   )
 }

@@ -11,6 +11,7 @@
   --accent-soft: rgba(77, 141, 255, 0.14);
   --warm: #f2a65e;
   --grid-dot: rgba(232, 235, 244, 0.07);
+  --danger: #ff6b6b;
   color-scheme: dark;
 }
 
@@ -26,6 +27,7 @@
   --accent-soft: rgba(31, 79, 224, 0.1);
   --warm: #c25e12;
   --grid-dot: rgba(18, 21, 29, 0.09);
+  --danger: #d92d20;
   color-scheme: light;
 }
 
@@ -564,6 +566,254 @@ button {
   font-size: 0.78rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.view-switch {
+  display: inline-flex;
+  margin-left: auto;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.view-switch button {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+}
+
+.view-switch button:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.view-switch button.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.view-switch button:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.btn-small {
+  padding: 5px 14px;
+  font-size: 0.82rem;
+}
+
+.text-button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.card-fill {
+  height: 100%;
+}
+
+.diagram {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 360px;
+}
+
+.diagram-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.diagram-caption,
+.diagram-stale,
+.diagram-info-key {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.diagram-caption {
+  color: var(--muted);
+}
+
+.diagram-caption.done {
+  color: var(--accent);
+}
+
+.diagram-caption.error {
+  color: var(--warm);
+  text-transform: none;
+}
+
+.diagram-stale {
+  display: inline-flex;
+  gap: 10px;
+  color: var(--warm);
+}
+
+.diagram-bar .btn-small {
+  margin-left: auto;
+}
+
+.diagram-canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+  background-size: 28px 28px;
+  overflow: hidden;
+  transition: opacity 0.2s;
+}
+
+.diagram-canvas.stale {
+  opacity: 0.55;
+}
+
+.diagram-message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.diagram-message.error {
+  color: var(--warm);
+}
+
+.diagram-info {
+  min-height: 1.5em;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.85rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diagram-info-key {
+  margin-right: 8px;
+  color: var(--muted);
+}
+
+.diagram-info-key:not(:first-child) {
+  margin-left: 20px;
+}
+
+.lattice {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+}
+
+.lattice .edge {
+  stroke: var(--line-strong);
+  stroke-width: 1.5;
+  transition: stroke 0.15s;
+}
+
+.lattice .edge.active {
+  stroke: var(--accent);
+}
+
+.lattice .edge.invalid {
+  stroke: var(--danger);
+  stroke-dasharray: 5 4;
+}
+
+.lattice .node {
+  cursor: grab;
+  outline: none;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lattice .node.dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+.lattice.is-dragging .node:not(.dragging) {
+  transition: none;
+}
+
+.node-hit {
+  fill: transparent;
+}
+
+.node-dot {
+  fill: var(--accent);
+  stroke: var(--bg);
+  stroke-width: 2.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.2s, fill 0.15s;
+}
+
+.node.active .node-dot {
+  transform: scale(1.35);
+}
+
+.node:focus-visible .node-dot {
+  stroke: var(--accent-mid);
+  stroke-width: 6;
+}
+
+.node.dragging .node-dot {
+  filter: drop-shadow(0 0 6px var(--accent-mid));
+}
+
+.node.invalid .node-dot {
+  fill: var(--danger);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--danger) 55%, transparent));
+}
+
+.node-label {
+  fill: var(--text);
+  font-size: 12px;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.node-label.attribute {
+  fill: var(--ink);
+  font-weight: 500;
+}
+
+.node-label.object {
+  fill: var(--muted);
+}
+
+.node.active .node-label.attribute,
+.node.active .node-label.object {
+  fill: var(--accent);
+}
+
+.node.invalid .node-label {
+  fill: var(--danger);
 }
 
 .switch {

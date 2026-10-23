@@ -4,7 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "build:wasm": "cargo build --manifest-path wasm/Cargo.toml --release --target wasm32-unknown-unknown && wasm-bindgen --target web --out-dir wasm/pkg wasm/target/wasm32-unknown-unknown/release/order_draw.wasm",
+    "predev": "npm run build:wasm",
     "dev": "vite",
+    "prebuild": "npm run build:wasm",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

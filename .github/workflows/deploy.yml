@@ -25,6 +25,20 @@ jobs:
           node-version: 22
           cache: npm
 
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: wasm
+
+      - run: echo "WASM_BINDGEN_VERSION=$(grep -A1 'name = "wasm-bindgen"$' wasm/Cargo.lock | sed -n 's/version = "\(.*\)"/\1/p')" >> "$GITHUB_ENV"
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen@${{ env.WASM_BINDGEN_VERSION }}
+
       - run: npm ci
       - run: npm run lint
       - run: npm run build

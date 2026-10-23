@@ -1,0 +1,21 @@
+[package]
+name = "order-draw"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-only"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+odis = "2026.9.1"
+bit-set = "0.8"
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+opt-level = 3
