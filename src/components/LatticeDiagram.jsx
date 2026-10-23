@@ -42,7 +42,7 @@ function fitFrame(points, width, height) {
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 
-function LatticeDiagram({ lattice, onHover, onEdit }) {
+function LatticeDiagram({ lattice, labels, onHover, onEdit, onLayout }) {
   const svgRef = useRef(null)
   const [size, setSize] = useState(null)
   const initial = useMemo(() => orient(lattice.nodes), [lattice])
@@ -71,6 +71,11 @@ function LatticeDiagram({ lattice, onHover, onEdit }) {
   }, [])
 
   const frame = size && fitFrame(initial, size.width, size.height)
+  const scale = frame?.scale
+
+  useEffect(() => {
+    if (scale) onLayout?.({ positions, scale })
+  }, [onLayout, positions, scale])
   const toScreen = (p) => ({ x: p.x * frame.scale + frame.offsetX, y: p.y * frame.scale + frame.offsetY })
   const toModel = (p) => ({ x: (p.x - frame.offsetX) / frame.scale, y: (p.y - frame.offsetY) / frame.scale })
   const points = frame ? positions.map(toScreen) : []
@@ -200,12 +205,12 @@ function LatticeDiagram({ lattice, onHover, onEdit }) {
           >
             <circle className="node-hit" r={NODE_RADIUS + 9} />
             <circle className="node-dot" r={NODE_RADIUS} />
-            {node.attributeLabels.length > 0 && (
+            {labels.attributes && node.attributeLabels.length > 0 && (
               <text className="node-label attribute" y={-(NODE_RADIUS + 8)}>
                 {node.attributeLabels.join(', ')}
               </text>
             )}
-            {node.objectLabels.length > 0 && (
+            {labels.objects && node.objectLabels.length > 0 && (
               <text className="node-label object" y={NODE_RADIUS + 18}>
                 {node.objectLabels.join(', ')}
               </text>

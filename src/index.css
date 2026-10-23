@@ -820,6 +820,21 @@ button {
   color: var(--warm);
 }
 
+.label-toggles {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.label-toggles .diagram-info-key {
+  margin-right: 0;
+}
+
+.label-toggles + .btn-small {
+  margin-left: 8px;
+}
+
 .diagram-bar .btn-small {
   margin-left: auto;
 }
@@ -918,7 +933,7 @@ button {
 }
 
 .node-dot {
-  fill: var(--accent);
+  fill: var(--ink);
   stroke: var(--bg);
   stroke-width: 2.5;
   transform-box: fill-box;
@@ -927,7 +942,12 @@ button {
 }
 
 .node.active .node-dot {
+  fill: var(--accent);
   transform: scale(1.35);
+}
+
+.node.dragging .node-dot {
+  fill: var(--accent);
 }
 
 .node:focus-visible .node-dot {

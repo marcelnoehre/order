@@ -4,6 +4,7 @@ import DiagramView from './DiagramView.jsx'
 import DrawButton from './DrawButton.jsx'
 import { CrossIcon, PlusIcon } from './Icons.jsx'
 import { toCxt, toCsv, downloadFile } from '../utils/exportContext.js'
+import { diagramPdf, diagramPng, diagramSvg, diagramTikz } from '../utils/exportDiagram.js'
 import { drawings } from '../data/drawings.js'
 import { drawLattice } from '../drawing/drawLattice.js'
 import { parametersFor, useDrawingParameters } from '../drawing/parameters.js'
@@ -29,6 +30,16 @@ const isBinary = (value) =>
 const createItems = (prefix, n) =>
   Array.from({ length: n }, (_, i) => ({ id: i + 1, name: `${prefix}${i + 1}` }))
 
+const LABELS_KEY = 'order.diagram-labels'
+
+function readLabels() {
+  try {
+    return { attributes: true, objects: true, ...JSON.parse(localStorage.getItem(LABELS_KEY)) }
+  } catch {
+    return { attributes: true, objects: true }
+  }
+}
+
 const formatTitle = (name) => (
   <>
     <span className="title-text">{name}</span>
@@ -52,6 +63,17 @@ function ContextTable({ initialContext }) {
   const [view, setView] = useState('context')
   const drawingParameters = useDrawingParameters()
   const latestDraw = useRef(0)
+  const [diagramLayout, setDiagramLayout] = useState(null)
+  const [labels, setLabels] = useState(readLabels)
+
+  const changeLabels = (next) => {
+    setLabels(next)
+    try {
+      localStorage.setItem(LABELS_KEY, JSON.stringify(next))
+    } catch {
+      return
+    }
+  }
   const [manyValued, setManyValued] = useState(initialContext?.manyValued ?? false)
   const [values, setValues] = useState(() => new Map(initialContext?.values))
 
@@ -164,6 +186,28 @@ function ContextTable({ initialContext }) {
     }
   }
 
+  const showDiagram = view === 'diagram' && result
+  const canExportDiagram = Boolean(result?.lattice)
+  const diagramFilename = result ? `${filename}-${result.drawing.id}` : filename
+
+  const exportDiagram = async (format) => {
+    const layout = diagramLayout
+    if (!result?.lattice || layout?.positions.length !== result.lattice.nodes.length) return
+    try {
+      if (format === 'tex') {
+        downloadFile(diagramTikz(result.lattice, layout, labels), `${diagramFilename}.tex`, 'application/x-tex')
+      } else if (format === 'svg') {
+        downloadFile(diagramSvg(result.lattice, layout, labels).svg, `${diagramFilename}.svg`, 'image/svg+xml')
+      } else if (format === 'png') {
+        downloadFile(await diagramPng(result.lattice, layout, labels), `${diagramFilename}.png`, 'image/png')
+      } else {
+        downloadFile(await diagramPdf(result.lattice, layout, labels), `${diagramFilename}.pdf`, 'application/pdf')
+      }
+    } catch (error) {
+      window.alert(`Could not export the diagram: ${error.message}`)
+    }
+  }
+
   const filledValues = objects.reduce(
     (count, g) => count + attributes.filter((m) => valueAt(g.id, m.id).trim() !== '').length,
     0,
@@ -188,27 +232,43 @@ function ContextTable({ initialContext }) {
           </p>
         </div>
         <div className="actions">
-          <label className="switch">
-            <input
-              type="checkbox"
-              role="switch"
-              checked={manyValued}
-              onChange={(e) => (e.target.checked ? toManyValued() : toBinary())}
-            />
-            <span className="switch-track" aria-hidden="true" />
-            Many-valued
-          </label>
-          <button
-            className="btn"
-            onClick={exportCxt}
-            disabled={manyValued}
-            title={manyValued ? 'Many-valued contexts can only be exported as .csv' : undefined}
-          >
-            Export .cxt
-          </button>
-          <button className="btn" onClick={exportCsv}>
-            Export .csv
-          </button>
+          {showDiagram ? (
+            ['pdf', 'tex', 'svg', 'png'].map((format) => (
+              <button
+                key={format}
+                className="btn"
+                onClick={() => exportDiagram(format)}
+                disabled={!canExportDiagram}
+                title={canExportDiagram ? undefined : 'Nothing drawn yet'}
+              >
+                Export .{format}
+              </button>
+            ))
+          ) : (
+            <>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={manyValued}
+                  onChange={(e) => (e.target.checked ? toManyValued() : toBinary())}
+                />
+                <span className="switch-track" aria-hidden="true" />
+                Many-valued
+              </label>
+              <button
+                className="btn"
+                onClick={exportCxt}
+                disabled={manyValued}
+                title={manyValued ? 'Many-valued contexts can only be exported as .csv' : undefined}
+              >
+                Export .cxt
+              </button>
+              <button className="btn" onClick={exportCsv}>
+                Export .csv
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -244,13 +304,16 @@ function ContextTable({ initialContext }) {
         </div>
       </div>
 
-      {view === 'diagram' && result ? (
+      {showDiagram ? (
         <DiagramView
           key={result.id}
           result={result}
           names={result.names}
           stale={manyValued || result.signature !== signature}
+          labels={labels}
+          onLabelsChange={changeLabels}
           onRedraw={() => startDrawing(result.drawing)}
+          onLayout={setDiagramLayout}
         />
       ) : (
         <div className="table-scroll" onScroll={(e) => setAtTop(e.currentTarget.scrollTop === 0)}>

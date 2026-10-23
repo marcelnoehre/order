@@ -21,7 +21,7 @@ function describeResult({ drawing, parameters, status, lattice, ms, message }) {
   return `${drawing.name} · ${lattice.nodes.length} concepts · ${Math.round(ms)} ms${describeBudget(parameters)}`
 }
 
-function DiagramView({ result, names, stale, onRedraw }) {
+function DiagramView({ result, names, stale, labels, onLabelsChange, onRedraw, onLayout }) {
   const [hovered, setHovered] = useState(null)
   const [layout, setLayout] = useState(0)
   const [edited, setEdited] = useState(false)
@@ -40,6 +40,26 @@ function DiagramView({ result, names, stale, onRedraw }) {
           </span>
         )}
         {result.lattice && (
+          <div className="label-toggles" role="group" aria-label="Labels">
+            <span className="diagram-info-key">Labels</span>
+            {[
+              ['attributes', 'Attributes'],
+              ['objects', 'Objects'],
+            ].map(([key, name]) => (
+              <label key={key} className="switch switch-small">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={labels[key]}
+                  onChange={(e) => onLabelsChange({ ...labels, [key]: e.target.checked })}
+                />
+                <span className="switch-track" aria-hidden="true" />
+                {name}
+              </label>
+            ))}
+          </div>
+        )}
+        {result.lattice && (
           <button
             className="btn btn-small"
             onClick={() => setLayout((n) => n + 1)}
@@ -56,8 +76,10 @@ function DiagramView({ result, names, stale, onRedraw }) {
           <LatticeDiagram
             key={layout}
             lattice={result.lattice}
+            labels={labels}
             onHover={setHovered}
             onEdit={setEdited}
+            onLayout={onLayout}
           />
         ) : (
           <p className={`diagram-message ${result.status}`}>
