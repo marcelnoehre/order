@@ -2,6 +2,7 @@ import { useState } from 'react'
 import EditableLabel from './EditableLabel.jsx'
 import { CrossIcon, PlusIcon } from './Icons.jsx'
 import { toCxt, toCsv, downloadFile } from '../utils/exportContext.js'
+import { drawings } from '../data/drawings.js'
 
 const INITIAL_SIZE = 5
 const DEFAULT_TITLE = 'Formal Context'
@@ -176,6 +177,15 @@ function ContextTable({ initialContext }) {
             Export .csv
           </button>
         </div>
+      </div>
+
+      <div className="draw-bar">
+        <span className="draw-label">Draw</span>
+        {drawings.map((drawing) => (
+          <button key={drawing.id} className="btn btn-accent">
+            {drawing.name}
+          </button>
+        ))}
       </div>
 
       <div className="table-scroll" onScroll={(e) => setAtTop(e.currentTarget.scrollTop === 0)}>
